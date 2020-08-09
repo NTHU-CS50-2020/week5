@@ -17,7 +17,7 @@ typedef struct node
 node;
 
 // Number of buckets in hash table
-const unsigned int N = 26;
+const unsigned int N = 100000;
 
 // Hash table
 node *table[N];
@@ -34,8 +34,9 @@ bool check(const char *word)
     }
     //printf("%s->%s\n", word, str);
     unsigned int key = hash(str);
-    if(key>26) return false;
+    if(table[key]==NULL) return false;
     node *tmp = table[key];
+
     while(tmp->next != NULL)
     {
         if(strcmp(tmp->word, str)==0)
@@ -43,7 +44,6 @@ bool check(const char *word)
             return true;
         }
         tmp = tmp->next;
-
     }
 
     if(strcmp(tmp->word, str)==0)
@@ -57,12 +57,15 @@ bool check(const char *word)
 // Hashes word to a number
 unsigned int hash(const char *word)
 {
-    // TODO : update hash func to get faster
     //https://stackoverflow.com/questions/7700400/whats-a-good-hash-function-for-english-words
-    unsigned int hash = *word - 'a';
-    max_hash = (max_hash>=hash)?max_hash:hash;
-    //printf("%s with hash %u\n", word, hash);
-    return hash;
+    unsigned long hash = 5381;
+    int c;
+
+    while ((c = *word++)!='\0')
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    //printf("%s with hash %lu\n", word, has%&N);
+    return hash%N;
 }
 
 // Loads dictionary into memory, returning true if successful else false
@@ -77,33 +80,17 @@ bool load(const char *dictionary)
     }
 
     char buffer[LENGTH + 2];
-    bool success = true;
-    node *EachKeyEnd[26];
 
     while (fgets(buffer, LENGTH + 2, file)) {
         //printf("%s\n", buffer);
         buffer[strlen(buffer) - 1] = '\0';
         unsigned int key = hash(buffer);
-        if( !table[key] )
-        {
-            //printf("%p\n", table[key]);
-            table[key] = malloc(sizeof(node));
-            strcpy(table[key]->word, buffer);
-            table[key]->next = NULL;
-            EachKeyEnd[key] = table[key];
-        }
-        else
-        {
-            node *tmp = EachKeyEnd[key];
-            //while(tmp->next!=NULL) tmp = tmp->next;//too slow
-            //tmp = malloc(sizeof(node));
-            //tmp->next->word = buffer;
-            tmp->next = malloc(sizeof(node));
-            strcpy(tmp->next->word, buffer);
-            tmp->next->next = NULL;
-            EachKeyEnd[key] = tmp->next;
-            //printf("%s\n", EachKeyEnd[key]->word);
-        }
+
+        node *tmp = malloc(sizeof(node));
+        strcpy(tmp->word, buffer);
+        tmp->next = (table[key]) ? table[key] : NULL;
+        table[key] = tmp;
+
         word_count ++;
     }
     fclose(file);
